@@ -2,14 +2,19 @@ module github.com/Neiva07/queue-management-service
 
 go 1.18
 
-require go.mongodb.org/mongo-driver v1.9.0
+require (
+	github.com/gerencianet/gn-api-sdk-go-pix v0.0.0-20210726141843-e1a05e678a52
+	github.com/gorilla/mux v1.8.0
+	github.com/joho/godotenv v1.4.0
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
+	go.mongodb.org/mongo-driver v1.9.0
+)
 
 require (
+	github.com/gerencianet/gn-api-sdk-go v1.0.5-0.20220604160340-b943e9dd1fbb // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
