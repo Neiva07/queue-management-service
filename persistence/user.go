@@ -40,10 +40,11 @@ func init() {
 func CreateUser(email, userType, cpf, name string) (*User, error) {
 
 	newUser := &User{
-		CreatedAt: time.Now(),
-		Email:     email,
-		Name:      name,
-		UserType:  userType,
+		CreatedAt:      time.Now(),
+		Email:          email,
+		Name:           name,
+		UserType:       userType,
+		TicketQuantity: 0,
 	}
 
 	_, err := usersCollection.InsertOne(context.TODO(), newUser)
@@ -78,4 +79,25 @@ func GetUser(ctx context.Context, userId string) *User {
 	}
 
 	return &user
+}
+
+func BuyTickets(userId string, quantity uint64) error {
+
+	s, err := primitive.ObjectIDFromHex(userId)
+
+	if err != nil {
+		log.Printf("Invalid user id %s \n", userId)
+		return err
+	}
+
+	filter := bson.D{{"_id", s}}
+
+	ticketChange := bson.D{{"ticketQuantity", quantity}}
+
+	update := bson.D{{"$inc", ticketChange}}
+
+	result := usersCollection.FindOneAndUpdate(context.TODO(), filter, update)
+
+	return result.Err()
+
 }

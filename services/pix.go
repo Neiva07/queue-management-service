@@ -30,7 +30,7 @@ type createImmediateChargeResponse struct {
 	Loc        location `json:"loc"`
 	Calendar   Calendar `json:"calendario"`
 	Status     string   `json:"status"`
-	TxID       string   `json"txid"`
+	TxID       string   `json:"txid"`
 	PIXKey     string   `json:"chave"`
 	TotalValue Value    `json:"value"`
 }
@@ -131,4 +131,45 @@ func GeneratePixKey(user *persistence.User, _ uint64) (*GeneratePixResponse, err
 		PIXKey:     cr.PIXKey,
 		TotalValue: cr.TotalValue.Original,
 	}, nil
+}
+
+func AddPIXWebhook(url string) (string, error) {
+
+	clientId, isValid := os.LookupEnv("CLIENT_ID")
+
+	clientSecret, isValid := os.LookupEnv("CLIENT_SECRET")
+
+	pixKey, isValid := os.LookupEnv("PIX_KEY")
+
+	if !isValid {
+		return "", errors.New("INVALID ENVIRONMENT VARIABLE")
+	}
+
+	credentials := map[string]interface{}{
+		"client_id":     clientId,
+		"client_secret": clientSecret,
+		"sandbox":       false,
+		"timeout":       20,
+		"CA":            "prod.crt.pem",
+		"Key":           "prod.key.pem",
+	}
+
+	gn := gerencianet.NewGerencianet(credentials)
+
+	body := map[string]interface{}{
+
+		"webhookUrl": url,
+		// "webhookUrl": "https://events.hookdeck.com/e/src_rQnCeEscnQJ5",
+	}
+
+	s, err := gn.UpdateWebhook(pixKey, body)
+
+	if err != nil {
+		log.Println("Error updating web hook", err)
+		return "", err
+	}
+
+	log.Println("Webhook updated successfully: ", s)
+
+	return s, nil
 }

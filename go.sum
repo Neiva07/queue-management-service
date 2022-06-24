@@ -1,8 +1,5 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/gerencianet/gn-api-sdk-go v1.0.4 h1:gK+wn8+fs3L5kXpmj27t5HFpRILz76bJyg3c+vKTr0A=
-github.com/gerencianet/gn-api-sdk-go v1.0.4/go.mod h1:yMfl2il+BXfOU5Tyh8ZeyaMWFEEUUQFK8Gue4PZ1Qog=
-github.com/gerencianet/gn-api-sdk-go v1.0.5-0.20220604160340-b943e9dd1fbb h1:39g1L/W2CmjR/+x8+R+m5XXaRli94nhkvMm4jQu56+Q=
 github.com/gerencianet/gn-api-sdk-go v1.0.5-0.20220604160340-b943e9dd1fbb/go.mod h1:yMfl2il+BXfOU5Tyh8ZeyaMWFEEUUQFK8Gue4PZ1Qog=
 github.com/gerencianet/gn-api-sdk-go-pix v0.0.0-20210726141843-e1a05e678a52 h1:7u4+kFXRSwyzvhpLmzTj/vxjcKyzAu+axG6feqbHUVA=
 github.com/gerencianet/gn-api-sdk-go-pix v0.0.0-20210726141843-e1a05e678a52/go.mod h1:X11lxuzfEx4wkSi2i0tJJUg2GFcibBgR/HWcTKqdKtQ=
