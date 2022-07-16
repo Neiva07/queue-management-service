@@ -14,6 +14,7 @@ type Payment struct {
 	Status        string `json:"status" bson:"status"`
 	UnitPrice     uint64 `json:"unitPrice" bson:"unitPrice"` //cents
 	TotalCost     uint64 `json:"totalCost" bson:"totalCost"`
+	QRCodeKey     string `json:"qrCodeKey" bson:"qrCodeKey"`
 }
 
 type Restaurant struct {
@@ -33,11 +34,12 @@ type User struct {
 	UserType       string             `json:"userType" bson:"userType"`
 	CPF            string             `json:"cpf" bson:"cpf"`
 	TicketQuantity uint64             `json:"ticketQuantity" bson:"ticketQuantity"`
+	Password       []byte             `json:"password" bson:"password"`
 }
 
 var USER_TYPE_PRICE_MAP = map[string]uint64{
-	"student":   100,
-	"professor": 300,
+	"student":   1,
+	"professor": 3,
 }
 
 func (u *User) GetTotalPayment(quantity uint64) uint64 {

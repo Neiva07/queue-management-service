@@ -42,7 +42,7 @@ func CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
 
 	json.NewDecoder(r.Body).Decode(request)
 
-	user := persistence.GetUser(ctx, userId)
+	user := persistence.GetUserById(ctx, userId)
 
 	if user == nil {
 		m := api.Message(http.StatusNotFound, "User Not Found")
@@ -63,7 +63,8 @@ func CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
 	payment := &persistence.Payment{
 		Quantity:      request.Quantity,
 		User:          *user,
-		PaymentKey:    generatePixResponse.PIXKey,
+		QRCodeKey:     generatePixResponse.QRCode.Key,
+		PaymentKey:    generatePixResponse.TXID,
 		PaymentMethod: request.PaymentMethod,
 		Status:        generatePixResponse.Status,
 		UnitPrice:     persistence.USER_TYPE_PRICE_MAP[user.UserType],
@@ -72,7 +73,9 @@ func CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
 	err = persistence.CreatePayment(payment)
 
 	if err != nil {
-		m := api.Message(http.StatusBadRequest, fmt.Sprint("Error recording payment in the database", err.Error()))
+		message := fmt.Sprint("Error recording payment in the database", err.Error())
+		log.Println(message)
+		m := api.Message(http.StatusBadRequest, message)
 		api.Response(w, m)
 		return
 	}
@@ -88,6 +91,7 @@ func CreatePaymentRequest(w http.ResponseWriter, r *http.Request) {
 
 	responseBody := api.Message(http.StatusCreated, paymentRequestResponse)
 
-	api.Response(w, responseBody)
+	log.Println(responseBody)
 
+	api.Response(w, responseBody)
 }

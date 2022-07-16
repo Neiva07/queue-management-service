@@ -3,7 +3,6 @@ package persistence
 import (
 	"context"
 	"log"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -37,15 +36,7 @@ func init() {
 
 }
 
-func CreateUser(email, userType, cpf, name string) (*User, error) {
-
-	newUser := &User{
-		CreatedAt:      time.Now(),
-		Email:          email,
-		Name:           name,
-		UserType:       userType,
-		TicketQuantity: 0,
-	}
+func CreateUser(newUser *User) (*User, error) {
 
 	_, err := usersCollection.InsertOne(context.TODO(), newUser)
 
@@ -56,7 +47,24 @@ func CreateUser(email, userType, cpf, name string) (*User, error) {
 	return newUser, nil
 }
 
-func GetUser(ctx context.Context, userId string) *User {
+func GetUserByEmail(ctx context.Context, email string) *User {
+	var user User
+
+	userFilterParamters := bson.M{"email": email}
+
+	err := usersCollection.FindOne(ctx, userFilterParamters).Decode(&user)
+
+	if err != nil {
+		log.Printf("Error while querying email %s \n", email)
+		log.Println(err.Error())
+		return nil
+	}
+
+	return &user
+
+}
+
+func GetUserById(ctx context.Context, userId string) *User {
 	var user User
 
 	s, err := primitive.ObjectIDFromHex(userId)
@@ -93,6 +101,27 @@ func BuyTickets(userId string, quantity uint64) error {
 	filter := bson.D{{"_id", s}}
 
 	ticketChange := bson.D{{"ticketQuantity", quantity}}
+
+	update := bson.D{{"$inc", ticketChange}}
+
+	result := usersCollection.FindOneAndUpdate(context.TODO(), filter, update)
+
+	return result.Err()
+
+}
+
+func RedeemTicket(userId string) error {
+
+	s, err := primitive.ObjectIDFromHex(userId)
+
+	if err != nil {
+		log.Printf("Invalid user id %s \n", userId)
+		return err
+	}
+
+	filter := bson.D{{"_id", s}}
+
+	ticketChange := bson.D{{"ticketQuantity", -1}}
 
 	update := bson.D{{"$inc", ticketChange}}
 

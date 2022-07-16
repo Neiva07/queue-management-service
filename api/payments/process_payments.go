@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,37 +9,10 @@ import (
 
 	"github.com/Neiva07/queue-management-service/api"
 	"github.com/Neiva07/queue-management-service/persistence"
+	"github.com/Neiva07/queue-management-service/services"
 	"github.com/gorilla/mux"
 )
 
-// type PIX struct {
-// 	Key         string `json:"chave"`
-// 	Type        string `json:"tipo"`
-// 	TotalValue  string `json:"valor"`
-// 	ProcessedAt string `json:"horario"`
-// 	Status      string `json:"status"`
-// }
-
-// type ProcessPaymentRequest struct {
-// 	PIX []PIX `json:"pix"`
-// }
-
-// func ProcessPayment(w http.ResponseWriter, r *http.Request) {
-// 	log.Printf("Processing Payment from PIX")
-
-// 	request := &ProcessPaymentRequest{}
-
-// 	json.NewDecoder(r.Body).Decode(request)
-
-// 	log.Println(request)
-
-// 	m := map[string]interface{}{}
-
-// 	json.NewDecoder(r.Body).Decode(&m)
-
-// 	log.Println(m)
-
-// }
 type ProcessPaymentRequest struct {
 	Status string `json:"status"`
 }
@@ -82,4 +56,56 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	api.Response(w, nil)
 
+}
+
+func CheckUserPayments(w http.ResponseWriter, r *http.Request) {
+	log.Println("Checking payments...")
+
+	params := mux.Vars(r)
+
+	userId := params["userId"]
+
+	payments, err := persistence.GetUnprocessedPaymentsByID(userId)
+
+	log.Println(payments)
+
+	if err != nil {
+		m := api.Message(http.StatusNotFound, fmt.Sprint("Error trying to get payments for user %s", userId))
+		log.Println(m)
+		api.Response(w, m)
+		return
+	}
+
+	for _, payment := range payments {
+
+		chargeDetails := services.CheckCharge(payment.PaymentKey)
+
+		log.Println(chargeDetails)
+
+		if payment.Status != chargeDetails.Status && chargeDetails.Status == "CONCLUIDA" {
+			payment, err := persistence.ProcessPayment(payment.PaymentKey, chargeDetails.Status)
+
+			if err != nil {
+				log.Println("Error trying to process payment for key %s with error :%s", payment.PaymentKey, err.Error())
+				continue
+			}
+			err = persistence.BuyTickets(userId, payment.Quantity)
+
+			if err != nil {
+				log.Println("Error trying to update tickets for user %s with error %s", userId, err.Error())
+			}
+		}
+	}
+
+	user := persistence.GetUserById(context.Background(), userId)
+
+	if user == nil {
+		m := api.Message(http.StatusNotFound, fmt.Sprint("Error trying to get user tickets for user %s", userId))
+		log.Println(m)
+		api.Response(w, m)
+		return
+	}
+
+	m := api.Message(200, &user)
+	api.Response(w, m)
 }

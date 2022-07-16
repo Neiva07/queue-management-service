@@ -7,7 +7,7 @@ import (
 
 // Message helper function to return in a standard map form
 var Message = func(status uint64, s interface{}) map[string]interface{} {
-	return map[string]interface{}{"statusCode": status, "message": s}
+	return map[string]interface{}{"statusCode": status, "data": s}
 }
 
 // Response add to the header and the writer the data in json format

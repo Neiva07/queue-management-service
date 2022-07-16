@@ -14,18 +14,19 @@ var paymentsCollection *mongo.Collection
 func init() {
 	log.Println("Initiating the payments collection...")
 
-	usersEmailIndexModel := mongo.IndexModel{
-		Keys: bson.M{
-			"user.email": 1,
-		},
+	userIDStatusIndexModel := mongo.IndexModel{
+		Keys: bson.D{
+			{"user._id", 1},
+			{"status", 1},
+		}, Options: nil,
 	}
 
 	paymentsCollection = DB.Collection("payments")
 
-	_, err := paymentsCollection.Indexes().CreateOne(context.TODO(), usersEmailIndexModel)
+	_, err := paymentsCollection.Indexes().CreateOne(context.TODO(), userIDStatusIndexModel)
 
 	if err != nil {
-		log.Println("Error creating the user-email index", err)
+		log.Fatal("Error creating the userID-status index", err)
 	}
 }
 
@@ -36,16 +37,45 @@ func CreatePayment(payment *Payment) error {
 	return err
 }
 
-func ProcessPayment(paymentKey string, status string) (*Payment, error) {
+func GetUnprocessedPaymentsByID(userID string) ([]*Payment, error) {
 
-	s, err := primitive.ObjectIDFromHex(paymentKey)
-
+	s, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		log.Printf("Invalid payment key %s \n", paymentKey)
+		log.Printf("Invalid user id %s \n", userID)
 		return nil, err
 	}
 
-	filter := bson.D{{"_id", s}, {"status", bson.D{{"$ne", "PROCESSED"}}}}
+	filter := bson.D{{"user._id", s}, {"status", bson.D{{"$ne", "CONCLUIDA"}}}}
+
+	cursor, err := paymentsCollection.Find(context.Background(), filter)
+
+	if err != nil {
+		log.Printf("Error finding payments for user %v", userID)
+		return nil, err
+	}
+
+	payments := []*Payment{}
+
+	for cursor.Next(context.Background()) {
+		payment := &Payment{}
+
+		err := cursor.Decode(payment)
+
+		if err != nil {
+			log.Printf("Error while parsing payments for user %s", userID)
+			return nil, err
+		}
+
+		payments = append(payments, payment)
+	}
+
+	return payments, nil
+
+}
+
+func ProcessPayment(paymentKey string, status string) (*Payment, error) {
+
+	filter := bson.D{{"_id", paymentKey}, {"status", bson.D{{"$ne", "PROCESSED"}}}}
 
 	paymentChange := bson.D{{"status", status}}
 

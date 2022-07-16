@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -45,23 +44,33 @@ type GeneratePixResponse struct {
 	Status     string
 	PIXKey     string
 	TotalValue string
+	TXID       string
 }
 
-func GeneratePixKey(user *persistence.User, _ uint64) (*GeneratePixResponse, error) {
+type ChargeDetailsResponse struct {
+	Status string `json:"status"`
+	PIXKey string `json:"chave"`
+	TXID   string `json:"txid"`
+}
 
-	// cert, _ := tls.LoadX509KeyPair("stg.crt.pem", "stg.key.pem")
+var clientId, clientSecret, pixKey string
+var credentials map[string]interface{}
 
-	clientId, isValid := os.LookupEnv("CLIENT_ID")
+func loadCredentials() {
+	var isValid bool
 
-	clientSecret, isValid := os.LookupEnv("CLIENT_SECRET")
+	clientId, isValid = os.LookupEnv("CLIENT_ID")
 
-	pixKey, isValid := os.LookupEnv("PIX_KEY")
+	clientSecret, isValid = os.LookupEnv("CLIENT_SECRET")
+
+	pixKey, isValid = os.LookupEnv("PIX_KEY")
 
 	if !isValid {
-		return nil, errors.New("Invalid Environemnt varible to Generate PIX payment")
+		log.Fatalf("Invalid Environemnt varible to Generate PIX payment")
+
 	}
 
-	credentials := map[string]interface{}{
+	credentials = map[string]interface{}{
 		"client_id":     clientId,
 		"client_secret": clientSecret,
 		"sandbox":       false,
@@ -69,6 +78,11 @@ func GeneratePixKey(user *persistence.User, _ uint64) (*GeneratePixResponse, err
 		"CA":            "prod.crt.pem",
 		"Key":           "prod.key.pem",
 	}
+}
+
+func GeneratePixKey(user *persistence.User, value uint64) (*GeneratePixResponse, error) {
+
+	loadCredentials()
 
 	gn := gerencianet.NewGerencianet(credentials)
 
@@ -84,7 +98,7 @@ func GeneratePixKey(user *persistence.User, _ uint64) (*GeneratePixResponse, err
 		},
 		"valor": map[string]interface{}{
 
-			"original": "00.01",
+			"original": convertToDecimalString(value),
 		},
 		"chave":              pixKey,
 		"solicitacaoPagador": "Teste.",
@@ -125,34 +139,39 @@ func GeneratePixKey(user *persistence.User, _ uint64) (*GeneratePixResponse, err
 		return nil, err
 	}
 
+	log.Println("Sucessfully generated pix charge")
+
 	return &GeneratePixResponse{
 		QRCode:     &qr,
 		Status:     cr.Status,
 		PIXKey:     cr.PIXKey,
 		TotalValue: cr.TotalValue.Original,
+		TXID:       cr.TxID,
 	}, nil
 }
 
+func CheckCharge(txID string) *ChargeDetailsResponse {
+	loadCredentials()
+
+	gn := gerencianet.NewGerencianet(credentials)
+
+	result, err := gn.DetailCharge(txID)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	chargeDetails := ChargeDetailsResponse{}
+
+	err = json.Unmarshal([]byte(result), &chargeDetails)
+
+	log.Println(result, err)
+
+	return &chargeDetails
+}
+
 func AddPIXWebhook(url string) (string, error) {
-
-	clientId, isValid := os.LookupEnv("CLIENT_ID")
-
-	clientSecret, isValid := os.LookupEnv("CLIENT_SECRET")
-
-	pixKey, isValid := os.LookupEnv("PIX_KEY")
-
-	if !isValid {
-		return "", errors.New("INVALID ENVIRONMENT VARIABLE")
-	}
-
-	credentials := map[string]interface{}{
-		"client_id":     clientId,
-		"client_secret": clientSecret,
-		"sandbox":       false,
-		"timeout":       20,
-		"CA":            "prod.crt.pem",
-		"Key":           "prod.key.pem",
-	}
+	loadCredentials()
 
 	gn := gerencianet.NewGerencianet(credentials)
 
@@ -172,4 +191,16 @@ func AddPIXWebhook(url string) (string, error) {
 	log.Println("Webhook updated successfully: ", s)
 
 	return s, nil
+}
+
+func convertToDecimalString(value uint64) string {
+	reais := fmt.Sprint(value / 100)
+
+	v := fmt.Sprint(value / 10)
+	i := fmt.Sprint(value)
+
+	decimalCents := string(v[len(v)-1])
+
+	return fmt.Sprintf("%v.%v%v", reais, decimalCents, string(i[len(i)-1]))
+
 }
