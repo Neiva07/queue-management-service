@@ -33,7 +33,7 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if u.TicketQuantity == 0 {
+	if u.TicketQuantity <= 0 {
 		log.Printf("User with email %v do not have any ticket to redeem\n", u.Email)
 		m := api.Message(http.StatusPaymentRequired, errors.New("No tickets to redeem"))
 		api.Response(w, m)
@@ -51,8 +51,6 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("User enqueued successfully %v", &u)
-
 	err = persistence.RedeemTicket(userId)
 
 	if err != nil {
@@ -62,7 +60,18 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m := api.Message(http.StatusOK, u)
+	ticket, err := persistence.CreateTicket(u)
+
+	if err != nil {
+		log.Println(err)
+		m := api.Message(http.StatusUnprocessableEntity, err)
+		api.Response(w, m)
+		return
+	}
+
+	log.Printf("User enqueued successfully %v", &u)
+
+	m := api.Message(http.StatusOK, ticket)
 	w.WriteHeader(http.StatusOK)
 	api.Response(w, m)
 
@@ -83,6 +92,8 @@ func DequeueUser(w http.ResponseWriter, r *http.Request) {
 
 	users := services.PopUsers(request.Quantity)
 
+	//notify users
+
 	if len(users) == 0 {
 		log.Println("No users to dequeue")
 		m := api.Message(http.StatusNotFound, users)
@@ -95,4 +106,28 @@ func DequeueUser(w http.ResponseWriter, r *http.Request) {
 	m := api.Message(http.StatusOK, users)
 	w.WriteHeader(http.StatusOK)
 	api.Response(w, m)
+}
+
+func ValidateTicket(w http.ResponseWriter, r *http.Request) {
+
+	params := mux.Vars(r)
+
+	ticketKey := params["ticketKey"]
+
+	ticket, err := persistence.ValidateTicket(ticketKey)
+
+	if err != nil {
+		m := api.Message(http.StatusNotFound, nil)
+		w.WriteHeader(http.StatusNotFound)
+		api.Response(w, m)
+		return
+	}
+
+	//notify user
+
+	m := api.Message(http.StatusOK, ticket)
+	w.WriteHeader(http.StatusOK)
+	api.Response(w, m)
+	return
+
 }

@@ -25,6 +25,13 @@ type Restaurant struct {
 	createdAt    time.Time `bson:"createdAt"`
 }
 
+type Ticket struct {
+	TicketQRCodeKey   string `bson:"_id" json:"ticketQRCodeKey"`
+	TicketQRCodeImage string `bson:"ticketQRCodeImage" json:"ticketQRCodeImage"`
+	Status            string `bson:"status" json:"status"`
+	User              User   `bson:"user" json:"user"`
+}
+
 type User struct {
 	UserID         primitive.ObjectID `json:"userId" bson:"_id"`
 	Email          string             `json:"email" bson:"email"`
