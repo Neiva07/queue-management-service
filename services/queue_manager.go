@@ -179,7 +179,6 @@ func PopUsers(quantity uint64) []*persistence.User {
 			log.Println(err)
 			break
 		}
-		// msg, err := reader.ReadMessage(context.Background())
 		if err != nil {
 			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
 		}

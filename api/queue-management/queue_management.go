@@ -16,15 +16,25 @@ import (
 type DequeueUserRequest struct {
 	Quantity uint64 `json:"quantity"`
 }
+type EqueueUserRequest struct {
+	UserID string `json:"userId"`
+}
 
 func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
-	params := mux.Vars(r)
+	request := &EqueueUserRequest{}
 
-	userId := params["userId"]
+	err := json.NewDecoder(r.Body).Decode(request)
 
-	u := persistence.GetUserById(ctx, userId)
+	if err != nil {
+		log.Println(err)
+		m := api.Message(http.StatusBadRequest, err)
+		api.Response(w, m)
+		return
+	}
+
+	u := persistence.GetUserById(ctx, request.UserID)
 
 	if u == nil {
 		log.Println("User not found")
@@ -42,7 +52,7 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 
 	u.TicketQuantity -= 1
 
-	err := services.EnqueueUser(u)
+	err = services.EnqueueUser(u)
 
 	if err != nil {
 		log.Println(err)
@@ -51,7 +61,7 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = persistence.RedeemTicket(userId)
+	err = persistence.RedeemTicket(request.UserID)
 
 	if err != nil {
 		log.Println(err)
@@ -77,7 +87,7 @@ func EnqueueUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func DequeueUser(w http.ResponseWriter, r *http.Request) {
+func DequeueUsers(w http.ResponseWriter, r *http.Request) {
 
 	request := &DequeueUserRequest{}
 
@@ -92,8 +102,6 @@ func DequeueUser(w http.ResponseWriter, r *http.Request) {
 
 	users := services.PopUsers(request.Quantity)
 
-	//notify users
-
 	if len(users) == 0 {
 		log.Println("No users to dequeue")
 		m := api.Message(http.StatusNotFound, users)
@@ -102,8 +110,10 @@ func DequeueUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//notify users
+
 	log.Printf("User dequeued successfully %v", users)
-	m := api.Message(http.StatusOK, users)
+	m := api.Message(http.StatusOK, nil)
 	w.WriteHeader(http.StatusOK)
 	api.Response(w, m)
 }
